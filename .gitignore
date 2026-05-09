@@ -1,3 +1,23 @@
-myenv
+myenv/
+images/
 
-images
+# Database
+*.db
+
+# Face data
+face_data/
+
+# Report generation
+generate_report_assets.py
+generate_report.py
+report_assets/
+*.docx
+ned_logo.png
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Uploads
+uploads/
