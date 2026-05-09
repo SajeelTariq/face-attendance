@@ -1,0 +1,49 @@
+body {
+  background-color: #f4f6fb;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.navbar {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.card {
+  border-radius: 12px;
+  transition: box-shadow 0.2s;
+}
+
+.card:hover {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1) !important;
+}
+
+.table th {
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+video {
+  background: #000;
+  display: block;
+}
+
+.progress {
+  border-radius: 999px;
+}
+
+.progress-bar {
+  border-radius: 999px;
+}
+
+.badge {
+  font-weight: 500;
+}
+
+.btn {
+  border-radius: 8px;
+}
+
+.form-control, .form-select {
+  border-radius: 8px;
+}

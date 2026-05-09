@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}My Attendance{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <h4 class="fw-bold"><i class="bi bi-calendar-check me-2 text-primary"></i>My Attendance</h4>
+  <p class="text-muted">{{ user.name }} &mdash; Roll: {{ student.roll_no }} &mdash; {{ student.batch }} / Section {{ student.section }}</p>
+</div>
+
+{% if attendance_summary %}
+<div class="row g-4 mb-4">
+  {% for s in attendance_summary %}
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div>
+            <h6 class="fw-bold mb-0">{{ s.course.code }}</h6>
+            <small class="text-muted">{{ s.course.name }}</small>
+          </div>
+          <span class="fs-4 fw-bold
+            {% if s.percentage >= 75 %}text-success
+            {% elif s.percentage >= 50 %}text-warning
+            {% else %}text-danger{% endif %}">
+            {{ s.percentage }}%
+          </span>
+        </div>
+
+        <div class="progress mb-3" style="height: 8px;">
+          <div class="progress-bar
+            {% if s.percentage >= 75 %}bg-success
+            {% elif s.percentage >= 50 %}bg-warning
+            {% else %}bg-danger{% endif %}"
+            style="width: {{ s.percentage }}%"></div>
+        </div>
+
+        <div class="row text-center g-0">
+          <div class="col border-end">
+            <div class="fw-bold text-success">{{ s.present }}</div>
+            <small class="text-muted">Present</small>
+          </div>
+          <div class="col border-end">
+            <div class="fw-bold text-danger">{{ s.absent }}</div>
+            <small class="text-muted">Absent</small>
+          </div>
+          <div class="col">
+            <div class="fw-bold">{{ s.total }}</div>
+            <small class="text-muted">Total</small>
+          </div>
+        </div>
+
+        {% if s.records %}
+        <hr class="my-3" />
+        <p class="small fw-semibold text-muted mb-2">Recent Records</p>
+        {% for rec in s.records %}
+        <div class="d-flex justify-content-between small">
+          <span>{{ rec.date }}</span>
+          <span class="badge {% if rec.status == 'present' %}bg-success{% else %}bg-danger{% endif %}">
+            {{ rec.status | capitalize }}
+          </span>
+        </div>
+        {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="alert alert-info">
+  <i class="bi bi-info-circle me-2"></i>
+  You are not enrolled in any courses yet. Please contact the admin.
+</div>
+{% endif %}
+{% endblock %}

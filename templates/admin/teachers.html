@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Teachers{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-md-8">
+    <h4 class="fw-bold mb-4"><i class="bi bi-person-badge me-2 text-success"></i>Teachers</h4>
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+          <thead class="table-dark">
+            <tr><th>Name</th><th>Email</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            {% for t in teachers %}
+            <tr>
+              <td class="fw-semibold">{{ t.user.name }}</td>
+              <td class="text-muted">{{ t.user.email }}</td>
+              <td>
+                <form method="post" action="/admin/teachers/{{ t.id }}/delete" class="d-inline"
+                      onsubmit="return confirm('Delete {{ t.user.name }}?')">
+                  <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" class="text-center text-muted py-4">No teachers yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-success text-white fw-bold">
+        <i class="bi bi-person-plus me-2"></i>Add Teacher
+      </div>
+      <div class="card-body">
+        <form method="post" action="/admin/teachers/add">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Full Name</label>
+            <input type="text" name="name" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Email</label>
+            <input type="email" name="email" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Password</label>
+            <input type="password" name="password" class="form-control" value="teacher123" required />
+          </div>
+          <button type="submit" class="btn btn-success w-100 fw-semibold">Add Teacher</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

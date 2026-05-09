@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}Take Attendance — {{ assignment.course.code }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="fw-bold mb-1">
+      <i class="bi bi-camera-video me-2 text-success"></i>
+      {{ assignment.course.code }} — {{ assignment.course.name }}
+    </h4>
+    <p class="text-muted mb-0">Section {{ assignment.section }} &mdash; {{ today.strftime('%A, %d %B %Y') }}</p>
+  </div>
+  <a href="/teacher/dashboard" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-2"></i>Back
+  </a>
+</div>
+
+<div class="row g-4">
+  <!-- Webcam feed -->
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header fw-bold bg-success text-white">
+        <i class="bi bi-camera me-2"></i>Live Camera Feed
+      </div>
+      <div class="card-body p-0">
+        <video id="video" autoplay class="w-100 rounded-bottom"></video>
+        <canvas id="canvas" style="display:none;"></canvas>
+      </div>
+      <div class="card-footer">
+        <div class="d-flex gap-2">
+          <button id="startBtn" class="btn btn-success flex-fill fw-semibold">
+            <i class="bi bi-play-circle me-2"></i>Start
+          </button>
+          <button id="stopBtn" class="btn btn-danger flex-fill fw-semibold" disabled>
+            <i class="bi bi-stop-circle me-2"></i>Stop
+          </button>
+        </div>
+        <div id="scanStatus" class="text-center mt-2 text-muted small">Press Start to begin scanning</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Attendance list -->
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header fw-bold d-flex justify-content-between">
+        <span><i class="bi bi-list-check me-2"></i>Marked Present</span>
+        <span class="badge bg-success fs-6" id="markedCount">{{ marked_ids | length }}</span>
+      </div>
+      <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
+        <ul class="list-group list-group-flush" id="markedList">
+          {% for enr in enrollments %}
+            {% if enr.student_id in marked_ids %}
+            <li class="list-group-item d-flex justify-content-between align-items-center" id="student-{{ enr.student_id }}">
+              <span>
+                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                <strong>{{ enr.student.user.name }}</strong>
+                <small class="text-muted ms-2">{{ enr.student.roll_no }}</small>
+              </span>
+              <span class="badge bg-success">Present</span>
+            </li>
+            {% endif %}
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <!-- Enrolled list -->
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-header fw-bold">
+        <i class="bi bi-people me-2"></i>Enrolled Students ({{ enrollments | length }})
+      </div>
+      <div class="card-body p-0" style="max-height: 260px; overflow-y: auto;">
+        <ul class="list-group list-group-flush">
+          {% for enr in enrollments %}
+          <li class="list-group-item d-flex justify-content-between" id="row-{{ enr.student_id }}">
+            <span>{{ enr.student.user.name }} <small class="text-muted">{{ enr.student.roll_no }}</small></span>
+            {% if enr.student_id in marked_ids %}
+            <span class="badge bg-success">Present</span>
+            {% else %}
+            <span class="badge bg-secondary" id="status-{{ enr.student_id }}">Absent</span>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recognition toast -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+  <div id="recognitionToast" class="toast" role="alert">
+    <div class="toast-header">
+      <i class="bi bi-person-check-fill text-success me-2"></i>
+      <strong class="me-auto">Recognized</strong>
+    </div>
+    <div class="toast-body" id="toastBody"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const courseId = {{ assignment.course_id }};
+let scanning = false;
+let scanInterval = null;
+let markedSet = new Set([{% for sid in marked_ids %}{{ sid }},{% endfor %}]);
+
+navigator.mediaDevices.getUserMedia({ video: true })
+  .then(stream => { document.getElementById('video').srcObject = stream; })
+  .catch(() => { document.getElementById('scanStatus').textContent = 'Webcam unavailable'; });
+
+document.getElementById('startBtn').addEventListener('click', () => {
+  scanning = true;
+  document.getElementById('startBtn').disabled = true;
+  document.getElementById('stopBtn').disabled = false;
+  document.getElementById('scanStatus').textContent = 'Scanning...';
+  scanInterval = setInterval(captureAndRecognize, 2000);
+});
+
+document.getElementById('stopBtn').addEventListener('click', () => {
+  scanning = false;
+  clearInterval(scanInterval);
+  document.getElementById('startBtn').disabled = false;
+  document.getElementById('stopBtn').disabled = true;
+  document.getElementById('scanStatus').textContent = 'Stopped.';
+});
+
+async function captureAndRecognize() {
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+
+  canvas.toBlob(async blob => {
+    const form = new FormData();
+    form.append('file', blob, 'frame.jpg');
+    form.append('course_id', courseId);
+
+    try {
+      const res = await fetch('/api/recognize', { method: 'POST', body: form });
+      const data = await res.json();
+      handleResult(data);
+    } catch (e) {
+      console.error(e);
+    }
+  }, 'image/jpeg', 0.85);
+}
+
+function handleResult(data) {
+  if (!data.recognized) return;
+
+  if (data.marked) {
+    markStudentUI(data.name, data.roll_no);
+    showToast(`${data.name} (${data.roll_no}) marked present! Confidence: ${data.confidence}`);
+  } else if (data.already_marked) {
+    document.getElementById('scanStatus').textContent = `${data.name} already marked.`;
+  } else if (!data.enrolled) {
+    document.getElementById('scanStatus').textContent = `${data.name} not enrolled in this course.`;
+  }
+}
+
+function markStudentUI(name, rollNo) {
+  // find student row by roll_no and update badge
+  const rows = document.querySelectorAll('[id^="status-"]');
+  rows.forEach(el => {
+    const li = el.closest('li');
+    if (li && li.textContent.includes(rollNo)) {
+      el.className = 'badge bg-success';
+      el.textContent = 'Present';
+    }
+  });
+
+  // add to marked list
+  const list = document.getElementById('markedList');
+  const existing = list.querySelector(`[data-roll="${rollNo}"]`);
+  if (!existing) {
+    const li = document.createElement('li');
+    li.className = 'list-group-item d-flex justify-content-between align-items-center';
+    li.setAttribute('data-roll', rollNo);
+    li.innerHTML = `
+      <span><i class="bi bi-check-circle-fill text-success me-2"></i>
+      <strong>${name}</strong> <small class="text-muted ms-2">${rollNo}</small></span>
+      <span class="badge bg-success">Present</span>`;
+    list.prepend(li);
+    document.getElementById('markedCount').textContent = parseInt(document.getElementById('markedCount').textContent) + 1;
+  }
+}
+
+function showToast(msg) {
+  document.getElementById('toastBody').textContent = msg;
+  document.getElementById('scanStatus').textContent = msg;
+  const toastEl = document.getElementById('recognitionToast');
+  new bootstrap.Toast(toastEl, { delay: 3000 }).show();
+}
+</script>
+{% endblock %}
