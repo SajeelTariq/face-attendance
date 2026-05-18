@@ -120,23 +120,6 @@ face-attendance/
 ├── face_data/
 │   ├── images/            # Stored face samples per student
 │   └── lbph_model.yml     # Trained LBPH model
-├── report_assets/         # Generated report visualizations
-├── generate_report_assets.py  # Generates all graphs/figures
-├── generate_report.py         # Generates Word (.docx) report
 ├── requirements.txt
 └── run.py
 ```
-
----
-
-## Generating the Report
-
-```bash
-# Generate all visualization images first
-python generate_report_assets.py
-
-# Then generate the Word document
-python generate_report.py
-```
-
-Output: `Face_Attendance_System_Report.docx`
